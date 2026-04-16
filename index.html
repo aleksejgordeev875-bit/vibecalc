@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    
+    <!-- PWA: Манифест и тема -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e1e2f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ВайбКальк">
+    
+    <title>Вайб Калькулятор PWA</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+        .calculator {
+            background: #1e1e2f;
+            border-radius: 32px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            width: 320px;
+            max-width: 90vw;
+        }
+        .display {
+            background: #2d2d44;
+            color: white;
+            font-size: 48px;
+            text-align: right;
+            padding: 16px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            min-height: 80px;
+            word-wrap: break-word;
+            border: none;
+            width: 100%;
+            box-sizing: border-box;
+            font-weight: 300;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+        button {
+            background: #2d2d44;
+            border: none;
+            color: white;
+            font-size: 28px;
+            padding: 20px 0;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            font-weight: 400;
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:hover {
+            filter: brightness(1.2);
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        .operator {
+            background: #f59e0b;
+            color: white;
+        }
+        .equals {
+            background: #10b981;
+            grid-column: span 2;
+        }
+        .clear {
+            background: #ef4444;
+            color: white;
+        }
+        .zero {
+            grid-column: span 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <input type="text" class="display" id="display" value="0" readonly>
+        <div class="buttons">
+            <button class="clear" onclick="clearDisplay()">AC</button>
+            <button class="operator" onclick="appendOperator('/')">/</button>
+            <button class="operator" onclick="appendOperator('*')">×</button>
+            <button class="operator" onclick="appendOperator('-')">-</button>
+            
+            <button onclick="appendNumber('7')">7</button>
+            <button onclick="appendNumber('8')">8</button>
+            <button onclick="appendNumber('9')">9</button>
+            <button class="operator" onclick="appendOperator('+')">+</button>
+            
+            <button onclick="appendNumber('4')">4</button>
+            <button onclick="appendNumber('5')">5</button>
+            <button onclick="appendNumber('6')">6</button>
+            <button class="operator" onclick="appendOperator('%')">%</button>
+            
+            <button onclick="appendNumber('1')">1</button>
+            <button onclick="appendNumber('2')">2</button>
+            <button onclick="appendNumber('3')">3</button>
+            <button class="equals" onclick="calculate()">=</button>
+            
+            <button class="zero" onclick="appendNumber('0')">0</button>
+            <button onclick="appendNumber('.')">.</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Логика калькулятора (без изменений) ---
+        let display = document.getElementById('display');
+        let currentInput = '';
+        let operator = null;
+        let previousInput = '';
+        let shouldResetDisplay = false;
+
+        function updateDisplay(value) { display.value = value; }
+
+        function appendNumber(number) {
+            if (shouldResetDisplay) { currentInput = ''; shouldResetDisplay = false; }
+            if (number === '.' && currentInput.includes('.')) return;
+            currentInput += number;
+            updateDisplay(currentInput);
+        }
+
+        function appendOperator(op) {
+            if (currentInput === '' && previousInput === '') return;
+            if (previousInput !== '' && currentInput !== '' && operator) calculate();
+            operator = op;
+            previousInput = currentInput === '' ? previousInput : currentInput;
+            currentInput = '';
+            shouldResetDisplay = false;
+        }
+
+        function calculate() {
+            if (previousInput === '' || currentInput === '' || operator === null) return;
+            let prev = parseFloat(previousInput);
+            let curr = parseFloat(currentInput);
+            let result;
+            switch(operator) {
+                case '+': result = prev + curr; break;
+                case '-': result = prev - curr; break;
+                case '*': result = prev * curr; break;
+                case '/': 
+                    if (curr === 0) { alert('На ноль делить нельзя'); clearDisplay(); return; }
+                    result = prev / curr; break;
+                case '%': result = prev % curr; break;
+                default: return;
+            }
+            result = Math.round(result * 1000000) / 1000000;
+            currentInput = result.toString();
+            operator = null;
+            previousInput = '';
+            shouldResetDisplay = true;
+            updateDisplay(currentInput);
+        }
+
+        function clearDisplay() {
+            currentInput = ''; previousInput = ''; operator = null;
+            shouldResetDisplay = false; updateDisplay('0');
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') appendNumber(e.key);
+            if (e.key === '.') appendNumber('.');
+            if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/' || e.key === '%') appendOperator(e.key);
+            if (e.key === 'Enter' || e.key === '=') calculate();
+            if (e.key === 'Escape') clearDisplay();
+            if (e.key === 'Backspace') {
+                currentInput = currentInput.slice(0, -1);
+                updateDisplay(currentInput || '0');
+            }
+        });
+
+        // --- PWA: Регистрация Service Worker ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('SW зарегистрирован!', reg.scope))
+                    .catch(err => console.log('Ошибка SW:', err));
+            });
+        }
+    </script>
+</body>
+</html>
